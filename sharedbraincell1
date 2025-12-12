@@ -1,0 +1,44 @@
+import os
+import discord
+import aiohttp
+from discord.ext import commands
+from dotenv import load_dotenv
+
+load_dotenv()
+
+TENOR_API_KEY = os.getenv("TENOR_API_KEY")
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+
+intents = discord.Intents.default()
+intents.message_content = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+@bot.event
+async def on_ready():
+    print(f"Logged in as {bot.user}")
+
+@bot.command(name="sharedbraincell")
+async def shared_braincell(ctx):
+    query = "shared braincell"
+
+    async with aiohttp.ClientSession() as session:
+        url = (
+            f"https://tenor.googleapis.com/v2/search?"
+            f"q={query}&key={TENOR_API_KEY}&limit=20"
+        )
+
+        async with session.get(url) as response:
+            data = await response.json()
+
+            if "results" not in data or len(data["results"]) == 0:
+                await ctx.send("Couldn't find any shared braincell GIFs 😭")
+                return
+
+            # Pick a random result
+            gif = data["results"][0]["url"] if len(data["results"]) == 1 else \
+                  data["results"][os.urandom(1)[0] % len(data["results"])]["url"]
+
+            await ctx.send(gif)
+
+bot.run(DISCORD_TOKEN)
